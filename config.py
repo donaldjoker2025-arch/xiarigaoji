@@ -73,7 +73,19 @@ SPONSOR_MAX_POLL = 24            # 赞助用户最大轮询间隔（小时）
 SPONSOR_MAX_METERS = 5           # 赞助用户最多监控电表数
 
 # ========================
-# 赞助激活码密钥
+# 赞助激活 / 许可证（授权）
 # ========================
-# 用于 HMAC-SHA256 生成/验证激活码（本地应用，硬编码即可）
-SPONSOR_SECRET = 'buaa-xrtj-2026-summer'
+# 授权改用 Ed25519 非对称签名（见 license_manager.py）：
+#   - 签发私钥只在版权方本机 secrets/license_private_key.pem（已 .gitignore，绝不入库/打包）；
+#   - App 内只内置公钥（license_manager.LICENSE_PUBLIC_KEY_B64），只能验签、无法伪造；
+#   - 不再有任何「随包分发的密钥」，旧的对称 SPONSOR_SECRET 已废弃删除。
+
+# settings 表里存许可证字符串的键
+LICENSE_SETTING_KEY = 'license_key'
+
+# 在线吊销名单（Gitee 仓库的 raw JSON，格式：{"revoked": ["<jti>", ...]}）。
+# 留空 = 纯离线模式，不做吊销检查。示例：
+#   https://gitee.com/<用户名>/<仓库>/raw/master/revoked.json
+REVOCATION_LIST_URL = ''
+# 吊销名单缓存有效期（小时）：未过期就用本地缓存，过期才联网刷新；联网失败软放行。
+REVOCATION_TTL_HOURS = 6

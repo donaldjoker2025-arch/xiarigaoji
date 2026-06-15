@@ -1755,6 +1755,58 @@ main {
 
 .activation-form { margin-top: 16px; }
 
+/* ---- License activation: machine code box + paste textarea ---- */
+.machine-id-box {
+  background: var(--bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.machine-id-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.machine-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.machine-id-code {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  word-break: break-all;
+  user-select: all;
+}
+.machine-id-row .btn-sm { flex-shrink: 0; }
+
+textarea.clean-input,
+textarea#input-activate-code {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  resize: vertical;
+  transition: all var(--transition-base);
+  appearance: none;
+  -webkit-appearance: none;
+}
+textarea#input-activate-code:focus {
+  outline: none;
+  background: var(--bg-input-focus);
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
 /* ---- Card semantic variants (no extra style needed, but defined for clarity) ---- */
 .form-card,
 .list-card,

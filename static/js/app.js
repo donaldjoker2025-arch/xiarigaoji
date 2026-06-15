@@ -58,6 +58,14 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  /** unix 秒 → YYYY-MM-DD（授权到期展示用）。 */
+  function formatExpiry(unixSeconds) {
+    const d = new Date(Number(unixSeconds) * 1000);
+    if (isNaN(d.getTime())) return '—';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
   function getGaugeColor(remain, threshold) {
     if (remain <= threshold || remain < 5) return 'red';
     if (remain < 20) return 'yellow';
@@ -943,6 +951,31 @@
     }
     renderTierDisplay();
     renderPollInterval();
+    loadMachineId();
+  }
+
+  /** 拉取本机机器码并显示在赞助卡片上（用户复制后发给作者签发许可证）。 */
+  async function loadMachineId() {
+    const el = $('#machine-id-display');
+    if (!el) return;
+    try {
+      const data = await api('GET', '/api/machine-id');
+      el.textContent = (data && (data.display || data.machine_id)) || '—';
+      state.machineId = data ? data.machine_id : null;
+    } catch (_) {
+      el.textContent = '获取失败';
+    }
+  }
+
+  async function copyMachineId() {
+    const text = $('#machine-id-display')?.textContent || '';
+    if (!text || text === '获取中…' || text === '获取失败') return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('机器码已复制，发给作者即可', 'success');
+    } catch (_) {
+      showToast('复制失败，请手动长按/选择复制', 'warning');
+    }
   }
 
   async function loadTier() {
@@ -970,6 +1003,13 @@
     const badgeCls = isSponsor ? 'tier-sponsor' : 'tier-free';
     const badgeText = isSponsor ? '💎 赞助用户' : '🆓 免费用户';
 
+    const expiryItem = isSponsor
+      ? `<div class="tier-info-item">
+          <div class="value">${t.expires_at ? formatExpiry(t.expires_at) : '永久'}</div>
+          <div class="label">授权有效期</div>
+        </div>`
+      : '';
+
     container.innerHTML = `
       <div class="tier-badge ${badgeCls}">${badgeText}</div>
       <div class="tier-info-grid">
@@ -981,6 +1021,7 @@
           <div class="value">${t.poll_interval || 12}h</div>
           <div class="label">查询间隔</div>
         </div>
+        ${expiryItem}
       </div>`;
 
     const sponsorCard = $('#sponsor-card');
@@ -1480,8 +1521,10 @@
 
     // Activate sponsor
     $('#btn-activate')?.addEventListener('click', activateSponsor);
-    $('#input-activate-code').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') activateSponsor();
+    $('#btn-copy-machine-id')?.addEventListener('click', copyMachineId);
+    // 许可证是多行粘贴框：Ctrl/⌘+Enter 提交，普通 Enter 允许换行
+    $('#input-activate-code')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) activateSponsor();
     });
 
     // Server酱 微信推送

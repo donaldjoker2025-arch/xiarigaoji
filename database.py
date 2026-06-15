@@ -8,14 +8,13 @@
 
 import os
 import json
-import hmac
-import hashlib
 import sqlite3
 import time
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 import config
+import license_manager
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -488,168 +487,63 @@ def set_setting(key: str, value: str):
 
 
 # ========================
-# 赞助等级管理
+# 赞助等级管理（基于 Ed25519 许可证，见 license_manager.py）
 # ========================
 
+def _stored_license() -> Optional[str]:
+    """读取已保存的许可证字符串。旧版对称激活码已废弃，不再兼容读取。"""
+    return get_setting(config.LICENSE_SETTING_KEY)
+
+
 def is_sponsor() -> bool:
-    """
-    检查当前用户是否为赞助用户。
-    通过查看 settings 中是否存在有效的激活码来判断。
-
-    Returns:
-        bool: 是否为赞助用户
-    """
-    code = get_setting('sponsor_code')
-    if not code:
+    """当前是否为有效赞助用户：校验已保存许可证的签名 / 机器绑定 / 到期 / 吊销。"""
+    lic = _stored_license()
+    if not lic:
         return False
+    res = license_manager.verify_license(lic, license_manager.get_machine_id())
+    return bool(res.get('valid'))
 
-    # 验证激活码格式和签名
-    return _verify_activation_code(code)
+
+def get_license_info() -> Dict[str, Any]:
+    """返回当前许可证状态，供前端展示（含到期时间戳 expires_at）。"""
+    lic = _stored_license()
+    if not lic:
+        return {'active': False, 'tier': None, 'expires_at': None, 'reason': '未激活'}
+    res = license_manager.verify_license(lic, license_manager.get_machine_id())
+    return {
+        'active': bool(res.get('valid')),
+        'tier': res.get('tier'),
+        'expires_at': res.get('exp'),
+        'jti': res.get('jti'),
+        'reason': res.get('reason'),
+    }
 
 
-def activate_sponsor(code: str) -> Dict[str, Any]:
+def activate_sponsor(license_str: str) -> Dict[str, Any]:
     """
-    激活赞助用户。验证激活码并保存。
-
-    激活码格式：XRTJ-XXXX-XXXX
-    其中 XRTJ 是固定前缀（夏日告急拼音首字母），
-    后两段是基于 HMAC-SHA256 生成的校验值。
+    激活赞助：校验许可证（签名 + 机器绑定 + 到期 + 吊销），通过则保存。
 
     Args:
-        code: 激活码字符串
+        license_str: 许可证字符串（形如 XRTJ.<payload>.<sig>）
 
     Returns:
         dict: {'success': bool, 'message': str}
     """
-    code = code.strip().upper()
+    license_str = (license_str or '').strip()
+    if not license_str:
+        return {'success': False, 'message': '请粘贴许可证'}
 
-    # 验证格式
-    if not code.startswith('XRTJ-'):
-        return {'success': False, 'message': '激活码格式错误，应以 XRTJ- 开头'}
+    res = license_manager.verify_license(license_str, license_manager.get_machine_id())
+    if not res.get('valid'):
+        return {'success': False, 'message': res.get('reason') or '许可证无效'}
 
-    parts = code.split('-')
-    if len(parts) != 3:
-        return {'success': False, 'message': '激活码格式错误，应为 XRTJ-XXXX-XXXX'}
+    set_setting(config.LICENSE_SETTING_KEY, license_str)
 
-    if len(parts[1]) != 4 or len(parts[2]) != 4:
-        return {'success': False, 'message': '激活码格式错误，每段应为4个字符'}
-
-    # 验证 HMAC 签名
-    if not _verify_activation_code(code):
-        return {'success': False, 'message': '激活码无效，请检查是否输入正确'}
-
-    # 保存激活码
-    set_setting('sponsor_code', code)
-    return {'success': True, 'message': '激活成功！已升级为赞助用户 🎉'}
-
-
-def generate_activation_code(seed: str = None) -> str:
-    """
-    生成一个有效的激活码（工具函数，可用于管理端生成码）。
-    
-    激活码格式：XRTJ-XXXX-XXXX
-    使用 HMAC-SHA256 确保码的唯一性和可验证性。
-
-    Args:
-        seed: 用于生成码的种子字符串，默认使用当前时间戳
-
-    Returns:
-        str: 生成的激活码
-    """
-    if seed is None:
-        seed = str(time.time())
-
-    # 使用 HMAC-SHA256 生成摘要
-    mac = hmac.new(
-        config.SPONSOR_SECRET.encode('utf-8'),
-        seed.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest().upper()
-
-    # 取摘要的前8个字符作为激活码的后两段
-    part1 = mac[:4]
-    part2 = mac[4:8]
-
-    code = f"XRTJ-{part1}-{part2}"
-
-    # 同时保存种子用于验证
-    _save_code_seed(code, seed)
-
-    return code
-
-
-def _verify_activation_code(code: str) -> bool:
-    """
-    验证激活码是否有效。
-
-    通过查找对应的种子并重新计算 HMAC 来验证。
-    如果没有种子记录，则尝试用码本身作为 HMAC 输入验证（兼容直接验证模式）。
-
-    Args:
-        code: 激活码
-
-    Returns:
-        bool: 是否有效
-    """
-    code = code.strip().upper()
-    parts = code.split('-')
-    if len(parts) != 3 or parts[0] != 'XRTJ':
-        return False
-
-    target_p1 = parts[1]
-    target_p2 = parts[2]
-
-    # 方式1：查找种子记录验证
-    conn = _get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT value FROM settings WHERE key = ?",
-            (f'code_seed_{code}',)
-        )
-        row = cursor.fetchone()
-        if row:
-            seed = row['value']
-            mac = hmac.new(
-                config.SPONSOR_SECRET.encode('utf-8'),
-                seed.encode('utf-8'),
-                hashlib.sha256
-            ).hexdigest().upper()
-            return mac[:4] == target_p1 and mac[4:8] == target_p2
-    finally:
-        conn.close()
-
-    # 方式2：直接验证模式（用完整码作为输入）
-    # 这允许通过外部工具生成的码也能被验证
-    mac = hmac.new(
-        config.SPONSOR_SECRET.encode('utf-8'),
-        code.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest().upper()
-
-    # 用码的后两段与重新计算的前8位比对
-    # 这种模式下，码必须是自洽的（自签名模式）
-    # 我们使用固定验证：用 secret + 前缀段 生成后两段
-    mac2 = hmac.new(
-        config.SPONSOR_SECRET.encode('utf-8'),
-        parts[0].encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest().upper()
-
-    # 检查第一段固定前缀的衍生码
-    # 对于预生成的码列表，直接检查种子即可
-    # 这里增加一个"万能验证"逻辑：后两段的拼接是 secret 的 HMAC 的子串
-    combined = target_p1 + target_p2
-    for i in range(0, len(mac2) - 8 + 1):
-        if mac2[i:i+8] == combined:
-            return True
-
-    return False
-
-
-def _save_code_seed(code: str, seed: str):
-    """保存激活码对应的种子，用于后续验证"""
-    set_setting(f'code_seed_{code}', seed)
+    msg = '激活成功！已升级为赞助用户 🎉'
+    exp = res.get('exp')
+    if exp:
+        msg += '（有效期至 ' + datetime.fromtimestamp(exp).strftime('%Y-%m-%d') + '）'
+    return {'success': True, 'message': msg}
 
 
 # ========================

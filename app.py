@@ -552,6 +552,7 @@ def api_tier():
     interval = scheduler.get_current_interval()
     max_meters = config.SPONSOR_MAX_METERS if is_sponsor else config.FREE_MAX_METERS
     meter_count = len(database.get_meters())
+    lic = database.get_license_info()
 
     return jsonify({
         'success': True,
@@ -562,6 +563,23 @@ def api_tier():
             'meter_count': meter_count,
             'min_poll': config.SPONSOR_MIN_POLL if is_sponsor else config.FREE_POLL_INTERVAL,
             'max_poll': config.SPONSOR_MAX_POLL if is_sponsor else config.FREE_POLL_INTERVAL,
+            'expires_at': lic.get('expires_at'),
+        }
+    })
+
+
+@app.route('/api/machine-id', methods=['GET'])
+def api_machine_id():
+    """
+    返回本机机器码，供前端展示给用户（用户把它发给版权方以签发绑定该机的许可证）。
+    """
+    import license_manager
+    code = license_manager.get_machine_id()
+    return jsonify({
+        'success': True,
+        'data': {
+            'machine_id': code,
+            'display': license_manager.format_machine_id(code),
         }
     })
 
@@ -573,14 +591,15 @@ def api_activate():
 
     请求体 JSON:
     {
-        "code": "XRTJ-XXXX-XXXX"
+        "code": "XRTJ.<payload>.<sig>"   # 许可证字符串（也接受 license 字段）
     }
     """
     data = request.get_json()
-    if not data or 'code' not in data:
-        return jsonify({'success': False, 'error': '缺少激活码'}), 400
+    license_str = (data or {}).get('code') or (data or {}).get('license')
+    if not license_str:
+        return jsonify({'success': False, 'error': '缺少许可证'}), 400
 
-    result = database.activate_sponsor(data['code'])
+    result = database.activate_sponsor(license_str)
     status_code = 200 if result['success'] else 400
     return jsonify(result), status_code
 

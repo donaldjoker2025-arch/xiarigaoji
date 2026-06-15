@@ -37,9 +37,10 @@
 ```
 夏日告急/
 ├── app.py              # ★ 主入口：Flask 应用 + 所有 HTTP 路由 + 系统托盘 + 启动流程
-├── config.py           # ★ 全局配置常量（端口、API 地址、电表系统列表、等级参数）
-├── database.py         # ★ SQLite 封装：电表/读数/订阅/通知/设置/赞助码 的全部 CRUD
+├── config.py           # ★ 全局配置常量（端口、API 地址、电表系统列表、等级参数、许可证配置）
+├── database.py         # ★ SQLite 封装：电表/读数/订阅/通知/设置/许可证 的全部 CRUD
 ├── buaa_api.py         # ★ 学校接口封装：查电表列表、查实时电量、创建缴费订单
+├── license_manager.py  # ★ 授权：机器码 + Ed25519 验签 + Gitee 在线吊销（内置公钥）
 ├── scheduler.py        # ★ 定时轮询：周期拉取所有电表读数 + 触发告警
 ├── notifier.py         # ★ 三渠道通知：桌面 Toast / Web Push / 微信 Server酱
 ├── cert_manager.py     # VAPID 密钥生成与读取 + 获取本机局域网 IP
@@ -47,9 +48,18 @@
 ├── start.bat           # Windows 启动脚本
 ├── 后台静默运行.vbs     # 无窗口后台启动脚本
 │
-├── data/               # 运行时数据（git 应忽略）
+├── tools/              # 版权方工具（不随 App 分发）
+│   ├── gen_keys.py      # 一次性：生成 Ed25519 签名密钥对
+│   └── gen_license.py   # 用私钥签发绑定机器的许可证
+│
+├── secrets/            # 签名私钥与签发台账（git 已忽略，绝不分发/打包）
+│   ├── license_private_key.pem   # 签发私钥（命门，只在版权方本机）
+│   └── issued_licenses.csv       # 签发记录（jti/机器码/到期/备注）
+│
+├── data/               # 运行时数据（git 已忽略）
 │   ├── buaa_power.db    # SQLite 数据库
-│   └── vapid_keys.json  # 自动生成的 VAPID 密钥对
+│   ├── vapid_keys.json  # 自动生成的 VAPID 密钥对
+│   └── revocation_cache.json  # 吊销名单本地缓存
 │
 └── static/             # 前端（Flask 以 /static 提供，根路径回退到 index.html）
     ├── index.html      # 单页应用骨架（三个 Tab：仪表盘 / 电表配置 / 设置）
@@ -97,7 +107,7 @@ cert_manager ← app.py / scheduler.py 用它拿 VAPID 密钥和本机 IP
 - `DEFAULT_SYSTEM_KEY='xyl_ac'`：历史数据/未标注系统的电表默认归属，保证向后兼容。
 - `DEFAULT_THRESHOLD=5.0`：默认告警阈值（kWh）。
 - 免费/赞助等级参数：`FREE_*`、`SPONSOR_*`（轮询间隔范围、最大电表数）。
-- `SPONSOR_SECRET`：HMAC 生成/验证激活码的密钥。
+- `LICENSE_SETTING_KEY` / `REVOCATION_LIST_URL` / `REVOCATION_TTL_HOURS`：许可证存储键、Gitee 吊销名单地址、吊销缓存时长。**旧的对称 `SPONSOR_SECRET` 已删除**，授权改用 Ed25519 非对称签名（见 `license_manager.py`）。
 
 > **当前 `METER_SYSTEMS` 配置（与查询/购电站点的对应关系）：**
 > | key | 显示名 | base_url | 查询(PubBuaa) | 购电(BuaaPay) |
@@ -137,8 +147,9 @@ cert_manager ← app.py / scheduler.py 用它拿 VAPID 密钥和本机 IP
 | `/api/readings/<id>` | GET | 历史读数（`?limit=`） | `database.get_readings` |
 | `/api/charge/<identity_no>` | POST | 创建充值订单，返回支付 URL | `buaa_api` + `database` 路由系统 |
 | `/api/poll-now` | POST | 手动触发一次全量轮询（后台线程） | `scheduler.poll_all_meters` |
-| `/api/tier` `/api/settings` | GET/PUT | 用户等级 / 轮询间隔 | `database` + `scheduler` |
-| `/api/activate` | POST | 激活赞助码 | `database.activate_sponsor` |
+| `/api/tier` `/api/settings` | GET/PUT | 用户等级 / 轮询间隔（tier 含 `expires_at` 授权到期） | `database` + `scheduler` |
+| `/api/machine-id` | GET | 返回本机机器码（前端展示给用户，用于签发绑定许可证） | `license_manager.get_machine_id` |
+| `/api/activate` | POST | 激活许可证（body `code`=许可证字符串） | `database.activate_sponsor` |
 | `/api/push/subscribe` | POST/DELETE | 保存/移除 Web Push 订阅 | `database` |
 | `/api/vapid-public-key` | GET | 返回 VAPID 公钥（前端订阅用） | `cert_manager` |
 | `/api/serverchan` | GET/PUT | 微信 SendKey 状态/保存（脱敏） | `database` |
@@ -161,7 +172,7 @@ CORS：`@app.after_request` 给所有响应加 `Access-Control-Allow-*`，允许
 注意点：
 - `init_db()` 幂等（`IF NOT EXISTS`），并含一段**迁移逻辑**：给早期 `meters` 表补 `system_key` 列。
 - **防重复通知机制**（重点）：`should_notify(meter_id, level)` 检查是否存在 `reset_at IS NULL` 的同级别记录——有则不再通知；`mark_notified` 写记录；`reset_notification` 在电量回升后把 `reset_at` 置时间戳，从而允许下次再次告警。
-- **赞助码**：`activate_sponsor` / `_verify_activation_code` 用 `HMAC-SHA256(SPONSOR_SECRET, seed)`，码格式 `XRTJ-XXXX-XXXX`。验证有两种模式（种子记录验证 + 自洽子串验证）。
+- **许可证 / 授权**：`activate_sponsor(license_str)` 调 `license_manager.verify_license` 做（签名 + 机器绑定 + 到期 + 吊销）四重校验，通过才把许可证串存进 settings(`license_key`)；`is_sponsor()` / `get_license_info()` 每次都重新校验。**不再有任何随包分发的密钥**——见下方 `license_manager.py`。
 
 #### `buaa_api.py` — 学校接口封装
 封装三个学校 HTTP 接口，**通过 `resolve_base_url(system_key)` 把请求路由到正确的系统 host**：
@@ -175,6 +186,14 @@ CORS：`@app.after_request` 给所有响应加 `Access-Control-Allow-*`，允许
 `_safe_float` 兜底处理空值。注意：`create_pay_order` 用的是学校内部 `id`（来自 `fetch_meter_info` 的返回），**不是** `identity_no`，也不是本地数据库 id。
 
 > **代理绕过（重点）**：学校系统都在校园内网（`10.x.x.x`）。若本机开了代理/VPN（如 Clash `127.0.0.1:7897`），`requests` 默认读系统代理、把内网请求也丢进隧道 → 内网 IP 不可达 → **502**。因此本模块用一个模块级 `_SESSION = requests.Session()` 且 `_SESSION.trust_env = False` 来**强制直连、绕过任何系统代理**，三个接口函数全部走它。**新增任何校内请求都要用 `_SESSION`，不要直接 `requests.get/post`。**
+
+#### `license_manager.py` — 授权 / 许可证（闭源收费命门）
+非对称签名授权：**App 内只内置公钥（`LICENSE_PUBLIC_KEY_B64`），只能验签、无法伪造**；签发私钥只在版权方本机 `secrets/`，绝不入库/打包。
+- `get_machine_id()`：本机稳定机器码（Windows 取注册表 `MachineGuid` 加盐 SHA-256，截 16 位十六进制）；`format_machine_id` 格式化成 `ABCD-EFGH-IJKL-MNOP` 给用户复制。
+- 许可证串格式：`XRTJ.<base64url(payload)>.<base64url(签名)>`；payload 含 `tier/mid/iat/exp/jti/note`，`mid='*'` 为浮动许可（不绑机器）。
+- `verify_license(license_str, machine_id)`：四重校验——①Ed25519 验签 ②机器绑定 ③到期 ④在线吊销；返回 `{valid, tier, exp, jti, reason}`，`reason` 为中文可直接展示。
+- **在线吊销**：从 `config.REVOCATION_LIST_URL`（Gitee raw JSON `{"revoked":[jti,...]}`）拉名单，按 `REVOCATION_TTL_HOURS` 缓存到 `data/revocation_cache.json`；**拉取失败软放行**（不误伤付费用户）。URL 留空=纯离线、不查吊销。
+- 签发工具：`python tools/gen_keys.py`（一次性生成密钥对）、`python tools/gen_license.py --machine <机器码> [--days N] [--floating] [--note ..]`（用私钥签发，记录进 `secrets/issued_licenses.csv`；吊销时把 `jti` 加进 Gitee 的 `revoked.json`）。
 
 #### `scheduler.py` — 定时轮询（业务核心）
 - `start_scheduler(app)`：建 `BackgroundScheduler`，按当前间隔加 `IntervalTrigger` 任务。`coalesce=True` + `max_instances=1` 防止任务堆积。

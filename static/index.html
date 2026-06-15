@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=10">
+    <link rel="stylesheet" href="/static/css/style.css?v=13">
 </head>
 <body>
     <div id="app-container">
@@ -228,15 +228,27 @@
                 <!-- Sponsor activation -->
                 <div class="card settings-card" id="sponsor-card">
                     <h3>💎 赞助激活</h3>
-                    <p class="text-secondary mb-3">支持开发者（任意金额，最低1元），获取激活码解锁高级功能：</p>
+                    <p class="text-secondary mb-3">支持开发者，解锁高级功能：</p>
                     <ul class="benefits-list">
                         <li><span class="check">✅</span> 自定义查询间隔（最快 2 小时）</li>
                         <li><span class="check">✅</span> 最多同时监控 5 个电表</li>
                     </ul>
-                    
-                    <div class="activation-form">
+
+                    <!-- 第①步：把本机机器码发给作者 -->
+                    <div class="machine-id-box mt-3">
+                        <div class="machine-id-label">① 本机机器码</div>
+                        <div class="machine-id-row">
+                            <code id="machine-id-display" class="machine-id-code">获取中…</code>
+                            <button id="btn-copy-machine-id" type="button" class="btn-secondary btn-sm">复制</button>
+                        </div>
+                        <p class="hint mt-2">把机器码发给作者并完成赞助，作者会签发一张<strong>仅对本机生效</strong>的许可证回发给你。</p>
+                    </div>
+
+                    <!-- 第②步：粘贴许可证激活 -->
+                    <div class="activation-form mt-3">
                         <div class="form-group">
-                            <input type="text" id="input-activate-code" placeholder="输入激活码 XRTJ-XXXX-XXXX" maxlength="14" class="uppercase-input">
+                            <label for="input-activate-code">② 粘贴许可证</label>
+                            <textarea id="input-activate-code" rows="3" class="clean-input" placeholder="粘贴以 XRTJ. 开头的许可证字符串" autocomplete="off" spellcheck="false"></textarea>
                         </div>
                         <button id="btn-activate" class="btn-primary btn-block">
                             <span class="btn-text">立即激活</span>
@@ -317,6 +329,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
-    <script src="/static/js/app.js?v=12"></script>
+    <script src="/static/js/app.js?v=13"></script>
 </body>
 </html>
