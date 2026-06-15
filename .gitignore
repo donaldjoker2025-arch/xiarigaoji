@@ -1,0 +1,42 @@
+# ============================================================
+#  夏日告急 — .gitignore
+#  闭源收费项目：运行时数据、密钥、签名私钥一律不得入库
+# ============================================================
+
+# ---- 运行时数据（本机数据库 + VAPID 密钥，含隐私，绝不入库）----
+data/
+*.db
+*.db-wal
+*.db-shm
+vapid_keys.json
+
+# ---- 授权/签名私钥（闭源收费命门：泄露=任何人可造许可证）----
+secrets/
+*.pem
+*.key
+license_private*
+.env
+.env.*
+
+# ---- Python ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ---- PyInstaller 打包产物 ----
+build/
+dist/
+
+# ---- 操作系统 / IDE ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# ---- Claude Code 本机配置（仅本地，不入库）----
+.claude/settings.local.json

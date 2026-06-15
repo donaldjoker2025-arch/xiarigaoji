@@ -1,0 +1,10 @@
+flask==3.1.1
+apscheduler==3.11.0
+requests==2.32.3
+cryptography==44.0.3
+pywebpush==2.0.1
+py-vapid==1.9.2
+qrcode==8.0
+Pillow==11.2.1
+pystray==0.19.5
+win11toast==0.36.3

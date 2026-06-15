@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>夏日告急 - 空调电量监控</title>
+    <meta name="description" content="北航空调电量实时监控与低电量提醒系统">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#f8fafc">
+    <meta name="color-scheme" content="light">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="夏日告急">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f8fafc'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23f8fafc'/%3E%3Ctext x='96' y='130' font-size='108' text-anchor='middle' fill='%230ea5e9'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <h1 class="logo-title"><span class="logo-icon">🔌</span> <span class="gradient-text">夏日告急</span></h1>
+                    <p class="subtitle">北航空调电量监控 <span class="dot">·</span> 低电即时提醒</p>
+                </div>
+                <div id="header-status" class="header-status">
+                    <span class="status-dot success"></span>
+                    <span class="header-status-text">运行中</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav id="main-nav">
+            <button class="nav-btn active" data-tab="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">仪表盘</span>
+            </button>
+            <button class="nav-btn" data-tab="config">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-text">电表配置</span>
+            </button>
+            <button class="nav-btn" data-tab="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">设置</span>
+            </button>
+        </nav>
+
+        <main>
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content active">
+                
+                <!-- Meter cards rendered here by JS -->
+                <div id="meters-container">
+                    <!-- Template for meter card -->
+                    <!-- Will be populated dynamically -->
+                </div>
+                
+                <!-- Empty state -->
+                <div id="empty-state" class="empty-state hidden">
+                    <div class="empty-icon">⚡</div>
+                    <h3>还没有配置电表</h3>
+                    <p>点击「电表配置」添加你的宿舍或实验室电表</p>
+                    <button class="btn-primary" onclick="app.switchTab('config')">去配置电表</button>
+                </div>
+
+                <!-- History Chart -->
+                <div id="chart-section" class="card chart-card hidden">
+                    <div class="card-header">
+                        <h3>📈 电量趋势</h3>
+                        <select id="sel-chart-meter" class="minimal-select"></select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="readings-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Config Tab -->
+            <section id="tab-config" class="tab-content">
+                <div class="card form-card">
+                    <h3>添加电表</h3>
+                    
+                    <div id="tier-limit-warning" class="alert warning hidden">
+                        <span class="alert-icon">⚠️</span>
+                        <div class="alert-content">
+                            <h4>已达到配置上限</h4>
+                            <p>免费用户最多可配置 1 个电表。激活赞助可配置最多 5 个。</p>
+                        </div>
+                    </div>
+
+                    <form id="form-meter" class="form-container">
+                        <div class="form-group">
+                            <label for="sel-system">电表系统</label>
+                            <div class="select-wrapper">
+                                <select id="sel-system" required>
+                                    <option value="" disabled selected>正在加载系统列表...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sel-campus">校区</label>
+                            <div class="select-wrapper">
+                                <select id="sel-campus" disabled required>
+                                    <option value="" disabled selected>请先选择系统</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sel-building">楼宇</label>
+                            <div class="select-wrapper">
+                                <select id="sel-building" disabled required>
+                                    <option value="" disabled selected>请先选择校区</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sel-floor">楼层</label>
+                            <div class="select-wrapper">
+                                <select id="sel-floor" disabled required>
+                                    <option value="" disabled selected>请先选择楼宇</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sel-room">房间</label>
+                            <div class="select-wrapper">
+                                <select id="sel-room" disabled required>
+                                    <option value="" disabled selected>请先选择楼层</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sel-meter">电表</label>
+                            <div class="select-wrapper">
+                                <select id="sel-meter" disabled required>
+                                    <option value="" disabled selected>请先选择房间</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="input-meter-name">电表备注 (可选)</label>
+                            <input type="text" id="input-meter-name" placeholder="例如：我的宿舍、教研室" maxlength="20">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-with-hint">
+                                <label for="input-threshold">提醒阈值 (kWh)</label>
+                                <span class="hint">低于此值将触发通知</span>
+                            </div>
+                            <div class="number-input-wrapper">
+                                <button type="button" class="num-btn decrease" onclick="document.getElementById('input-threshold').stepDown()">-</button>
+                                <input type="number" id="input-threshold" value="5.0" min="1.0" max="50.0" step="0.5" required>
+                                <button type="button" class="num-btn increase" onclick="document.getElementById('input-threshold').stepUp()">+</button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" id="btn-save-meter" class="btn-primary btn-block" disabled>
+                            <span class="btn-text">保存电表配置</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Existing meters list -->
+                <div id="existing-meters" class="card list-card hidden">
+                    <h3>已配置的电表</h3>
+                    <div id="meters-list" class="meter-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="tab-settings" class="tab-content">
+                
+                <!-- Push Notification Settings (Browser) -->
+                <div class="card settings-card highlight-card">
+                    <div class="card-header-flex">
+                        <h3><span class="icon">💻</span> 电脑端推送</h3>
+                        <div class="setting-action">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-push">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="push-status-msg" class="setting-status text-secondary text-sm mt-2"></div>
+                </div>
+
+                <!-- WeChat Push (Server酱) -->
+                <div class="card settings-card wechat-card">
+                    <div class="card-header-flex">
+                        <h3><span class="icon">💬</span> 微信推送</h3>
+                        <span id="wechat-badge" class="status-pill off">未配置</span>
+                    </div>
+                    
+                    <div class="form-group mt-3">
+                        <label for="input-serverchan-key">Server酱 SendKey</label>
+                        <input type="text" id="input-serverchan-key" placeholder="输入 SendKey (SCT...)" autocomplete="off" spellcheck="false" class="clean-input">
+                    </div>
+                    <div class="wechat-actions mt-3">
+                        <button id="btn-open-serverchan" type="button" class="btn-secondary btn-sm">获取 Key</button>
+                        <button id="btn-save-serverchan" type="button" class="btn-primary btn-sm">保存配置</button>
+                        <button id="btn-test-serverchan" type="button" class="btn-secondary btn-sm">发送测试</button>
+                        <button id="btn-clear-serverchan" type="button" class="btn-danger btn-sm">清除</button>
+                    </div>
+
+                    <div id="serverchan-status" class="setting-status text-secondary text-sm mt-3"></div>
+                </div>
+
+                <!-- Poll interval -->
+                <div class="card settings-card">
+                    <div id="tier-display"></div>
+                    <div id="poll-interval-section" class="mt-4"></div>
+                </div>
+
+                <!-- Sponsor activation -->
+                <div class="card settings-card" id="sponsor-card">
+                    <h3>💎 赞助激活</h3>
+                    <p class="text-secondary mb-3">支持开发者（任意金额，最低1元），获取激活码解锁高级功能：</p>
+                    <ul class="benefits-list">
+                        <li><span class="check">✅</span> 自定义查询间隔（最快 2 小时）</li>
+                        <li><span class="check">✅</span> 最多同时监控 5 个电表</li>
+                    </ul>
+                    
+                    <div class="activation-form">
+                        <div class="form-group">
+                            <input type="text" id="input-activate-code" placeholder="输入激活码 XRTJ-XXXX-XXXX" maxlength="14" class="uppercase-input">
+                        </div>
+                        <button id="btn-activate" class="btn-primary btn-block">
+                            <span class="btn-text">立即激活</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About -->
+                <div class="card settings-card about-card">
+                    <div class="card-header-flex">
+                        <h3><span class="icon">ℹ️</span> 关于项目</h3>
+                        <span class="version-badge">v1.0</span>
+                    </div>
+                    <div class="about-content">
+                        <p class="text-secondary mb-3">极致安全的本地化北航空调电量监控平台。</p>
+                        
+                        <div class="privacy-note mt-3">
+                            <h4 class="flex-align-center"><span class="icon">🛡️</span> 隐私与安全承诺</h4>
+                            <ul class="benefits-list mt-2">
+                                <li><span class="check">🔒</span> 所有数据仅存储在您的本地设备上</li>
+                                <li><span class="check">🚫</span> 不接触、不存储任何支付密码</li>
+                                <li><span class="check">⚡</span> 充值直达学校官方平台，拒绝中间商</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Charge Modal -->
+    <div id="modal-charge" class="modal-overlay hidden">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h3>⚡ 快速充值</h3>
+                <button class="btn-close modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="charge-meter-info" class="text-secondary mb-4"></p>
+                
+                <div class="form-group">
+                    <label>请输入充值电量 (度/kWh)</label>
+                    <div class="amount-presets">
+                        <button class="preset-btn" data-amount="30">30度</button>
+                        <button class="preset-btn" data-amount="50">50度</button>
+                        <button class="preset-btn" data-amount="100">100度</button>
+                    </div>
+                    <div class="custom-amount-input mt-3">
+                        <span class="currency-symbol">⚡</span>
+                        <input type="number" id="input-charge-amount" placeholder="输入整数量" min="1" step="1">
+                    </div>
+                    <p class="hint mt-2">注：电价为 0.5元/度，50度需支付 25元</p>
+                </div>
+                
+                <div class="alert info mt-4">
+                    <span class="alert-icon">ℹ️</span>
+                    <p>点击确认后，将为您生成并打开学校官方支付页面，请在学校页面内完成支付。</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary modal-close">取消</button>
+                <button id="btn-confirm-charge" class="btn-primary">
+                    确认并去支付
+                    <div class="btn-glow"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="neon-spinner"></div>
+        <p id="loading-text">加载中...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+    <script src="/static/js/app.js?v=12"></script>
+</body>
+</html>
