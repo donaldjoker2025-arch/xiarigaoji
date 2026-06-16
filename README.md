@@ -48,11 +48,13 @@
 ├── start.bat           # Windows 启动脚本（源码运行）
 ├── build.bat           # 一键打包成 exe（PyInstaller）
 ├── xrtj.spec           # PyInstaller 打包配置（单文件/窗口化/安全排除）
+├── 使用说明.txt         # 给最终用户的说明（随 exe 一起分发，UTF-8 BOM）
 ├── 后台静默运行.vbs     # 无窗口后台启动脚本
 │
 ├── tools/              # 版权方工具（不随 App 分发）
 │   ├── gen_keys.py      # 一次性：生成 Ed25519 签名密钥对
-│   └── gen_license.py   # 用私钥签发绑定机器的许可证
+│   ├── gen_license.py   # 用私钥签发绑定机器的许可证
+│   └── make_icon.py     # 生成应用图标 static/icon.ico
 │
 ├── secrets/            # 签名私钥与签发台账（git 已忽略，绝不分发/打包）
 │   ├── license_private_key.pem   # 签发私钥（命门，只在版权方本机）
@@ -65,6 +67,7 @@
 │
 └── static/             # 前端（Flask 以 /static 提供，根路径回退到 index.html）
     ├── index.html      # 单页应用骨架（三个 Tab：仪表盘 / 电表配置 / 设置）
+    ├── icon.ico        # 应用/托盘图标（exe 图标也用它）
     ├── manifest.json   # PWA 清单
     ├── sw.js           # Service Worker（接收 push 事件并展示通知）
     ├── css/style.css   # 全部样式

@@ -691,25 +691,25 @@ def _create_tray_icon():
         import pystray
         from PIL import Image, ImageDraw
 
-        # 创建图标图像（简单的闪电符号⚡）
-        size = 64
-        img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
+        # 优先使用打包好的品牌图标 static/icon.ico（与 exe 图标一致）
+        img = None
+        try:
+            icon_path = config.resource_path(os.path.join('static', 'icon.ico'))
+            if os.path.exists(icon_path):
+                img = Image.open(icon_path)
+        except Exception:
+            img = None
 
-        # 绘制圆形背景
-        draw.ellipse([2, 2, size-2, size-2], fill='#FFD700')
-
-        # 绘制闪电符号
-        lightning = [
-            (32, 8),   # 顶部
-            (20, 30),  # 左中
-            (30, 30),  # 中
-            (22, 56),  # 底部
-            (44, 26),  # 右中
-            (34, 26),  # 中
-            (32, 8),   # 回到顶部
-        ]
-        draw.polygon(lightning, fill='#1a1a2e')
+        # 兜底：图标文件缺失时，在内存里画一个闪电图标
+        if img is None:
+            size = 64
+            img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.ellipse([2, 2, size-2, size-2], fill='#FFD700')
+            lightning = [
+                (32, 8), (20, 30), (30, 30), (22, 56), (44, 26), (34, 26), (32, 8),
+            ]
+            draw.polygon(lightning, fill='#1a1a2e')
 
         def on_open_dashboard(icon, item):
             """打开浏览器面板"""

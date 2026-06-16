@@ -78,5 +78,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,                         # 暂无 .ico；后续可在此指定应用图标
+    icon='static/icon.ico',            # 应用图标（由 tools/make_icon.py 生成）
 )

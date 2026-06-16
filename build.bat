@@ -24,8 +24,10 @@ call .venv\Scripts\python.exe -m PyInstaller xrtj.spec --noconfirm
 
 echo.
 if exist "dist\夏日告急.exe" (
+    REM 把使用说明一并放进 dist，方便整个文件夹打包分发
+    if exist "使用说明.txt" copy /y "使用说明.txt" "dist\使用说明.txt" >nul
     echo [OK] 打包完成：dist\夏日告急.exe
-    echo     把这个 exe 发给用户即可，双击运行（需连校园网）。
+    echo     连同 dist\使用说明.txt 一起发给用户即可，双击运行（需连校园网）。
     echo     注意：data\ 与 secrets\ 不要随 exe 一起发出去。
 ) else (
     echo [X] 打包失败，请查看上方日志。
