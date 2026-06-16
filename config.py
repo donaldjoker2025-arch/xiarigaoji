@@ -86,6 +86,6 @@ LICENSE_SETTING_KEY = 'license_key'
 # 在线吊销名单（Gitee 仓库的 raw JSON，格式：{"revoked": ["<jti>", ...]}）。
 # 留空 = 纯离线模式，不做吊销检查。示例：
 #   https://gitee.com/<用户名>/<仓库>/raw/master/revoked.json
-REVOCATION_LIST_URL = ''
+REVOCATION_LIST_URL = 'https://gitee.com/donaldjoker/xrtj-license/raw/master/revoked.json'
 # 吊销名单缓存有效期（小时）：未过期就用本地缓存，过期才联网刷新；联网失败软放行。
 REVOCATION_TTL_HOURS = 6
