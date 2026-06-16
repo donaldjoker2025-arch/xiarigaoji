@@ -7,6 +7,36 @@
 """
 
 import os
+import sys
+
+
+# ========================
+# 路径解析（兼容 PyInstaller 打包）
+# ========================
+# 打包成 exe 后路径有两类，必须分开处理：
+#   - 只读资源（static/）：被打进 exe，运行时解压到临时目录 sys._MEIPASS；
+#   - 可写数据（data/：数据库、VAPID 密钥、吊销缓存）：必须放在一个**稳定且可写**
+#     的目录，绝不能放进临时解压目录（每次退出会被清空 → 丢库）。
+# 这里把可写数据锚定到 **exe 所在目录**（便携、数据随程序走）；源码运行时则用项目目录。
+
+def _writable_base_dir() -> str:
+    """可写运行时数据的基准目录（绝对路径，与当前工作目录无关）。"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包：exe 所在目录（不是临时解压目录）
+        return os.path.dirname(sys.executable)
+    # 源码运行：本文件所在的项目根目录
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def resource_path(rel: str) -> str:
+    """只读打包资源的绝对路径：打包后在 sys._MEIPASS，否则在项目目录。"""
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, rel)
+
+
+BASE_DIR = _writable_base_dir()
+DATA_DIR = os.path.join(BASE_DIR, 'data')   # 运行时可写数据目录
+STATIC_DIR = resource_path('static')         # 只读前端资源目录
 
 # ========================
 # 服务器配置
@@ -17,12 +47,12 @@ SERVER_PORT = 5000               # 服务端口
 # ========================
 # 数据库配置
 # ========================
-DB_PATH = os.path.join('data', 'buaa_power.db')  # SQLite 数据库路径
+DB_PATH = os.path.join(DATA_DIR, 'buaa_power.db')  # SQLite 数据库路径（绝对）
 
 # ========================
 # 密钥目录
 # ========================
-CERT_DIR = 'data'                # VAPID 密钥存储目录
+CERT_DIR = DATA_DIR              # VAPID 密钥 / 吊销缓存存储目录（绝对）
 
 # ========================
 # 北航校园API地址

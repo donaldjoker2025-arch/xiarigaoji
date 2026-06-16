@@ -23,6 +23,7 @@ http://localhost 与 http://127.0.0.1 被所有现代浏览器视为安全上下
 
 import os
 import io
+import sys
 import json
 import threading
 import webbrowser
@@ -39,13 +40,25 @@ import cert_manager
 import scheduler
 import notifier
 
+# 打包为窗口化 exe 时没有控制台，sys.stdout 可能为 None；
+# 直接 print 会抛 AttributeError。这里把输出重定向到 data/run.log，
+# 既避免崩溃，也便于排查用户现场问题。
+if getattr(sys, 'frozen', False) and sys.stdout is None:
+    try:
+        os.makedirs(config.DATA_DIR, exist_ok=True)
+        _logf = open(os.path.join(config.DATA_DIR, 'run.log'), 'a', encoding='utf-8')
+        sys.stdout = _logf
+        sys.stderr = _logf
+    except Exception:
+        sys.stdout = sys.stderr = io.StringIO()
+
 # ========================
 # Flask 应用初始化
 # ========================
 
 app = Flask(
     __name__,
-    static_folder='static',
+    static_folder=config.STATIC_DIR,
     static_url_path='/static'
 )
 
@@ -107,7 +120,7 @@ def serve_static(path):
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    return send_from_directory(config.STATIC_DIR, 'sw.js', mimetype='application/javascript')
 
 @app.route('/api/meter-systems', methods=['GET'])
 def api_meter_systems():
@@ -751,10 +764,9 @@ def main():
     print("=" * 50)
     print()
 
-    # 1. 确保 data 目录存在
-    os.makedirs('data', exist_ok=True)
-    os.makedirs('static', exist_ok=True)
-    print("[启动] data/ 目录已就绪")
+    # 1. 确保 data 目录存在（绝对路径，打包后位于 exe 同级目录）
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+    print(f"[启动] 数据目录已就绪: {config.DATA_DIR}")
 
     # 2. 初始化数据库
     database.init_db()

@@ -45,7 +45,9 @@
 ├── notifier.py         # ★ 三渠道通知：桌面 Toast / Web Push / 微信 Server酱
 ├── cert_manager.py     # VAPID 密钥生成与读取 + 获取本机局域网 IP
 ├── requirements.txt    # Python 依赖
-├── start.bat           # Windows 启动脚本
+├── start.bat           # Windows 启动脚本（源码运行）
+├── build.bat           # 一键打包成 exe（PyInstaller）
+├── xrtj.spec           # PyInstaller 打包配置（单文件/窗口化/安全排除）
 ├── 后台静默运行.vbs     # 无窗口后台启动脚本
 │
 ├── tools/              # 版权方工具（不随 App 分发）
@@ -283,6 +285,15 @@ python app.py
 - 系统托盘有⚡图标，右键可「打开面板 / 立即轮询 / 退出」
 
 > **推送须在本机浏览器（localhost）开启**——手机经局域网 IP 访问时不是安全上下文，Web Push 不可用，此时应改用 **微信 Server酱** 接收手机提醒。
+
+### 打包分发（闭源收费）
+双击 `build.bat`（或 `pyinstaller xrtj.spec`）→ 产物 `dist/夏日告急.exe`（单文件、窗口化，约 24MB），发给用户双击即用、无需装 Python。
+
+打包相关的**路径与安全**要点：
+- **路径**：`config.py` 用 `sys.frozen`/`sys._MEIPASS` 区分两类路径——只读资源 `static/` 经 `STATIC_DIR` 从解压目录读取；可写数据 `data/`（库/密钥/吊销缓存）经 `DATA_DIR` 锚定在 **exe 同级目录**，绝不放进会被清空的临时解压目录。新增任何文件读写都要走这两个常量，别用相对路径。
+- **窗口化无控制台**：`app.py` 顶部检测 `sys.stdout is None` 时把输出重定向到 `data/run.log`（否则 `print` 会崩）。排查用户问题先看这个日志。
+- **安全（务必）**：`xrtj.spec` 只把 `static/` 加进 `datas`；`secrets/`（私钥）、`data/`、`tools/`（签发工具）都**不被 import、不在 datas → 不进包**。改 spec 时切勿手滑把它们加进去。授权安全靠 Ed25519 非对称签名，**不依赖隐藏字节码**——解包 exe 也拿不到私钥、伪造不了许可证。
+- 把 exe 放在**可写目录**（桌面/下载，别放 `Program Files`，那里默认不可写）。`data/`、`secrets/` 不要随 exe 发出去。
 
 ---
 
