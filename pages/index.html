@@ -336,12 +336,27 @@
             }
         });
 
-        // Auto query if id is passed in url
+        // 1. 获取 URL 参数或本地缓存
         const params = new URLSearchParams(window.location.search);
-        if (params.has('id')) {
-            document.getElementById('identityNo').value = params.get('id');
-            document.getElementById('queryBtn').click();
+        let defaultId = params.get('id') || localStorage.getItem('lastIdentityNo');
+        
+        if (defaultId) {
+            document.getElementById('identityNo').value = defaultId;
+            // 如果是通过 URL 传参进来的，自动触发一次查询
+            if (params.has('id')) {
+                document.getElementById('queryBtn').click();
+            }
         }
+
+        // 2. 在查询按钮的事件里，把查询成功的 ID 存起来
+        const _originalClick = document.getElementById('queryBtn').onclick;
+        document.getElementById('queryBtn').addEventListener('click', async () => {
+            const id = document.getElementById('identityNo').value.trim();
+            if (id) {
+                localStorage.setItem('lastIdentityNo', id);
+            }
+            // ... 原有查询逻辑已在上方绑定
+        });
     </script>
 </body>
 </html>
