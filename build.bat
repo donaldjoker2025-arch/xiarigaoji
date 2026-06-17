@@ -20,7 +20,7 @@ if exist "build" rmdir /s /q "build"
 if exist "dist" rmdir /s /q "dist"
 
 echo [3/3] 开始打包（单文件，首次较慢）...
-call .venv\Scripts\python.exe -m PyInstaller xrtj.spec --noconfirm
+call .venv\Scripts\python.exe -m PyInstaller --clean --upx-dir=upx\upx-4.2.4-win64 xrtj.spec --noconfirm
 
 echo.
 if exist "dist\夏日告急.exe" (
