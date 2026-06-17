@@ -64,6 +64,21 @@ def start_scheduler(app):
         replace_existing=True
     )
 
+    # 添加更新检查任务 (每 12 小时检查一次)
+    import update_checker
+    _scheduler.add_job(
+        func=update_checker.check_for_updates,
+        trigger=IntervalTrigger(hours=12),
+        id='check_for_updates',
+        name='版本更新检查',
+        replace_existing=True,
+        next_run_time=None  # 启动后不要立刻运行，等12小时或手动触发
+    )
+    
+    # 启动时立刻在后台线程检查一次
+    import threading
+    threading.Thread(target=update_checker.check_for_updates, daemon=True).start()
+
     _scheduler.start()
     print(f"[调度器] 已启动，轮询间隔: {interval_hours} 小时")
 

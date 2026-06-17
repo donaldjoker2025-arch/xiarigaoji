@@ -9,6 +9,12 @@
 import os
 import sys
 
+# ========================
+# 应用程序信息
+# ========================
+APP_VERSION = '2.0.0'
+GITHUB_REPO = 'donaldjoker2025-arch/xiarigaoji'
+
 
 # ========================
 # 路径解析（兼容 PyInstaller 打包）
