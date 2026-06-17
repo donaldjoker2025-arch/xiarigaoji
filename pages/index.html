@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>夏日告急 - 极速网页版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 480px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: white;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            outline: none;
+            font-family: inherit;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(14, 165, 233, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--glass-border);
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .data-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .data-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .data-value {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .value-highlight {
+            color: #34d399;
+            font-size: 1.2rem;
+        }
+
+        .value-warning {
+            color: #f43f5e;
+            font-size: 1.2rem;
+        }
+
+        .error-msg {
+            color: #f43f5e;
+            background: rgba(244, 63, 94, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            margin-top: 20px;
+            display: none;
+            text-align: left;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        a.pay-btn {
+            display: block;
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 12px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        a.pay-btn:hover {
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">⚡</div>
+        <h1>夏日告急</h1>
+        <p class="subtitle">极速电表查询 · 纯前端版本</p>
+
+        <div class="input-group">
+            <label for="identityNo">电表 ID (IdentityNo)</label>
+            <input type="text" id="identityNo" placeholder="输入电表唯一标识号" autocomplete="off" spellcheck="false">
+        </div>
+
+        <button id="queryBtn">
+            <span id="btnText">立即查询</span>
+            <div id="loading" class="loading"></div>
+        </button>
+
+        <div id="error" class="error-msg"></div>
+
+        <div id="result">
+            <div class="data-row">
+                <span class="data-label">所在位置</span>
+                <span class="data-value" id="val-address">...</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">剩余电量</span>
+                <span class="data-value value-highlight" id="val-remain">...</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">可用余额</span>
+                <span class="data-value" id="val-money">...</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">更新时间</span>
+                <span class="data-value" style="font-size:0.85rem;" id="val-time">...</span>
+            </div>
+            <div id="pay-action"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('queryBtn').addEventListener('click', async () => {
+            const id = document.getElementById('identityNo').value.trim();
+            if (!id) return;
+
+            const btnText = document.getElementById('btnText');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+
+            // Reset UI
+            errorDiv.style.display = 'none';
+            resultDiv.style.display = 'none';
+            btnText.style.display = 'none';
+            loading.style.display = 'inline-block';
+            document.getElementById('queryBtn').disabled = true;
+
+            try {
+                // School API Base (using https for GitHub Pages compatibility)
+                const targetUrl = `https://xylktsd.buaa.edu.cn/BuaaPay/Meter?id=${encodeURIComponent(id)}`;
+                
+                // Fetch directly
+                const response = await fetch(targetUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json, text/plain, */*'
+                    }
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (!data || !data.address) throw new Error("无效的电表ID或未获取到数据");
+
+                // Update UI
+                document.getElementById('val-address').textContent = `${data.campus||''} ${data.building||''} ${data.room||''}` || data.address;
+                
+                const remainEl = document.getElementById('val-remain');
+                remainEl.textContent = `${data.remain} 度`;
+                remainEl.className = `data-value ${parseFloat(data.remain) < 10 ? 'value-warning' : 'value-highlight'}`;
+                
+                document.getElementById('val-money').textContent = `¥ ${data.money}`;
+                document.getElementById('val-time').textContent = data.readingTime || new Date().toLocaleString();
+
+                const payAction = document.getElementById('pay-action');
+                if (data.payUrl) {
+                    payAction.innerHTML = `<a href="${data.payUrl}" target="_blank" class="pay-btn">去缴费</a>`;
+                } else {
+                    payAction.innerHTML = '';
+                }
+
+                resultDiv.style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+                if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+                    errorDiv.innerHTML = `<strong>请求失败。</strong> 这通常是因为跨域限制（CORS）导致。<br><br>解决方案：<br>1. 安装并开启 CORS Unblock 浏览器插件<br>2. 使用完整的桌面版客户端进行查询`;
+                } else {
+                    errorDiv.textContent = `查询失败: ${err.message}`;
+                }
+                errorDiv.style.display = 'block';
+            } finally {
+                btnText.style.display = 'inline-block';
+                loading.style.display = 'none';
+                document.getElementById('queryBtn').disabled = false;
+            }
+        });
+
+        // Auto query if id is passed in url
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('id')) {
+            document.getElementById('identityNo').value = params.get('id');
+            document.getElementById('queryBtn').click();
+        }
+    </script>
+</body>
+</html>

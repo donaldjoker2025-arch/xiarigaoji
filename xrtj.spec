@@ -30,15 +30,23 @@ hiddenimports += [
 datas = []
 binaries = []
 
-# win11toast 依赖 winsdk，且带数据文件 —— 整体收集，避免运行时缺组件
-for pkg in ('win11toast', 'winsdk'):
-    try:
-        d, b, h = collect_all(pkg)
-        datas += d
-        binaries += b
-        hiddenimports += h
-    except Exception:
-        pass
+# win11toast 依赖 winsdk，但 winsdk 全量打包会使包体积膨胀数十MB。
+# 这里仅收集 win11toast 及通知相关的 winsdk 子模块
+try:
+    d, b, h = collect_all('win11toast')
+    datas += d
+    binaries += b
+    hiddenimports += h
+except Exception:
+    pass
+
+# 手动添加 win11toast 运行所需的 winsdk 模块
+hiddenimports += [
+    'winsdk.windows.ui.notifications',
+    'winsdk.windows.data.xml.dom',
+    'winsdk.windows.foundation',
+    'winsdk.windows.foundation.collections',
+]
 
 # 只读前端资源（运行时解压到 sys._MEIPASS/static）
 datas += [('static', 'static')]
@@ -53,7 +61,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'pytest', 'unittest'],  # 用不到，减小体积
+    excludes=['tkinter', 'pytest', 'unittest', 'pydoc', 'email', 'xmlrpc', 'http.server', 'IPython', 'pandas', 'numpy', 'matplotlib', 'scipy', 'PyQt5', 'PySide6'],  # 用不到，减小体积
     noarchive=False,
 )
 
