@@ -322,7 +322,7 @@
             💳 充值
           </button>
           <button class="btn-secondary btn-sm" data-action="copy_id" data-identity="${meter.identity_no}">
-            🔗 网页版
+            🔗 API 直链
           </button>
           <button class="btn-secondary btn-sm" data-action="poll">
             🔄 刷新
@@ -355,14 +355,14 @@
     }
   }
 
-  /* ---- Copy Web Link ---- */
+  /* ---- Copy API Link ---- */
   async function copyWebLink(identityNo) {
     if (!identityNo) return showToast('电表 ID 为空', 'error');
-    // 构建 GitHub Pages 专属链接
-    const link = `https://donaldjoker2025-arch.github.io/xiarigaoji/pages/index.html?id=${encodeURIComponent(identityNo)}`;
+    // 构建官方 API 直查链接
+    const link = `https://xylktsd.buaa.edu.cn/BuaaPay/Meter?id=${encodeURIComponent(identityNo)}`;
     try {
       await navigator.clipboard.writeText(link);
-      showToast('极速网页版直达链接已复制！您可以发到微信在手机上直接打开。', 'success');
+      showToast('API 极速查询直链已复制！您可发到手机浏览器直接打开收藏。', 'success');
     } catch (e) {
       showToast('复制失败，请手动记录电表 ID: ' + identityNo, 'warning');
     }
