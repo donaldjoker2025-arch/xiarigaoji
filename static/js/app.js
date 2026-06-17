@@ -321,6 +321,9 @@
           <button class="btn-secondary btn-sm" data-action="charge" data-identity="${meter.identity_no}">
             💳 充值
           </button>
+          <button class="btn-secondary btn-sm" data-action="copy_id" data-identity="${meter.identity_no}">
+            🔗 网页版
+          </button>
           <button class="btn-secondary btn-sm" data-action="poll">
             🔄 刷新
           </button>
@@ -343,9 +346,25 @@
         case 'poll':
           await pollNow();
           break;
+        case 'copy_id':
+          await copyWebLink(btn.dataset.identity);
+          break;
       }
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  }
+
+  /* ---- Copy Web Link ---- */
+  async function copyWebLink(identityNo) {
+    if (!identityNo) return showToast('电表 ID 为空', 'error');
+    // 构建 GitHub Pages 专属链接
+    const link = `https://donaldjoker2025-arch.github.io/xiarigaoji/pages/index.html?id=${encodeURIComponent(identityNo)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast('极速网页版直达链接已复制！您可以发到微信在手机上直接打开。', 'success');
+    } catch (e) {
+      showToast('复制失败，请手动记录电表 ID: ' + identityNo, 'warning');
     }
   }
 
