@@ -61,7 +61,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'pytest', 'unittest', 'pydoc', 'xmlrpc', 'IPython', 'pandas', 'numpy', 'matplotlib', 'scipy', 'PyQt5', 'PySide6', 'setuptools', 'distutils', 'pkg_resources', 'pydoc_data', 'lib2to3', 'curses', 'idlelib', 'sqlite3.test', 'test', 'PySide2', 'wx', 'IPython', 'tornado', 'pygments', 'docutils', 'jedi', 'prompt_toolkit', 'notebook', 'nbconvert', 'jinja2', 'markupsafe', 'babel'],  # 用不到，减小体积
+    excludes=['tkinter', 'pytest', 'unittest', 'pydoc', 'IPython', 'pandas', 'numpy', 'matplotlib', 'scipy', 'PyQt5', 'PySide6', 'pydoc_data', 'lib2to3', 'curses', 'idlelib', 'sqlite3.test', 'test', 'PySide2', 'wx', 'tornado', 'pygments', 'docutils', 'jedi', 'prompt_toolkit', 'notebook', 'nbconvert'],  # 仅排除绝对用不到的超大依赖（GUI/数据科学/测试）
     noarchive=False,
 )
 
